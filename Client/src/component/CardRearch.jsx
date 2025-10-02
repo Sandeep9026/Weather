@@ -20,16 +20,34 @@ export default function CardRearch() {
 
   // Load current user details from localStorage (set on login)
   useEffect(() => {
-    try {
-      const u = localStorage.getItem('user');
-      if (u) setCurrentUser(JSON.parse(u));
-      else setCurrentUserError('Not authenticated');
-    } catch {
-      setCurrentUserError('Failed to load profile');
-    } finally {
-      setCurrentUserLoading(false);
-    }
-  }, []);
+    let cancelled = false;
+    (async () =>{
+      try{
+        setCurrentUserLoading(true);
+        const res = await axios.get(`${BACKEND_URL}/me`, { withCredentials: true });
+        if(!cancelled){
+          if(res.data?.success){
+            setCurrentUser(res.data.user);
+          }
+          else{
+            setCurrentUserError('Not authenticated');
+          }
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setCurrentUserError('Failed to load profile');
+        }
+      } finally {
+        if (!cancelled) {
+          setCurrentUserLoading(false);
+        }
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [BACKEND_URL]);
+
+
+  
 
   const handleLogout = async () => {
     try {
@@ -38,9 +56,9 @@ export default function CardRearch() {
       console.error("Logout failed:", error);
     } finally {
       // clear local flags
-      localStorage.removeItem('auth');
-      localStorage.removeItem('user');
-      localStorage.removeItem('token');
+      // localStorage.removeItem('auth');
+      // localStorage.removeItem('user');
+      // localStorage.removeItem('token');
       navigate("/login");
     }
   };
